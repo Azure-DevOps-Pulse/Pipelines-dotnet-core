@@ -1,0 +1,93 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- master
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+  - stage: Terraform_Init
+    displayName: "Terraform Init"
+    jobs:
+      - job: Terraform_Init
+        steps:
+          - task: TerraformInstaller@1
+            inputs:
+              terraformVersion: 'latest'
+          
+          - task: TerraformTaskV4@4
+            inputs:
+              provider: 'azurerm'
+              command: 'init'
+              workingDirectory: '$(System.DefaultWorkingDirectory)WebApp-ASP.Net core/terraform-manifests'
+              backendServiceArm: 'Azure DevOps Pulse (18a0e420-4ca6-47f3-ba52-2534b3c7d2c1)'
+              backendAzureRmResourceGroupName: 'terraform-rg10'
+              backendAzureRmStorageAccountName: 'terraformbackend0001'
+              backendAzureRmContainerName: 'tfcontainer01'
+              backendAzureRmKey: 'terraform.tfstate'
+
+
+  - stage: Validate
+    displayName: "Terraform Validate"
+    jobs:
+      - job: Terraform_validate
+        steps:
+          - task: TerraformTaskV4@4
+            inputs:
+              provider: 'azurerm'
+              command: 'validate'
+              workingDirectory: '$(System.DefaultWorkingDirectory)WebApp-ASP.Net core/terraform-manifests'
+  
+  - stage: format
+    displayName: "Terraform Format"
+    jobs:
+      - job: Terraform_format
+        steps:
+          - task: TerraformTaskV4@4
+            inputs:
+              provider: 'azurerm'
+              command: 'custom'
+              workingDirectory: '$(System.DefaultWorkingDirectory)WebApp-ASP.Net core/terraform-manifests'
+              outputTo: 'console'
+              customCommand: 'fmt'
+              environmentServiceNameAzureRM: 'Azure DevOps Pulse (18a0e420-4ca6-47f3-ba52-2534b3c7d2c1)'
+
+  - stage: Plan
+    displayName: "Terraform Plan"
+    jobs:
+      - job: Terraform_Plan
+        steps:
+          - task: TerraformTaskV4@4
+            inputs:
+              provider: 'azurerm'
+              command: 'plan'
+              workingDirectory: '$(System.DefaultWorkingDirectory)WebApp-ASP.Net core/terraform-manifests'
+              environmentServiceNameAzureRM: 'Azure DevOps Pulse (18a0e420-4ca6-47f3-ba52-2534b3c7d2c1)'
+
+
+  
+  - stage: Copy_file
+    displayName: "Copy_file"
+    jobs:
+      - job: Copy_file
+        steps:
+          - task: CopyFiles@2
+            inputs:
+              SourceFolder: '$(System.DefaultWorkingDirectory)WebApp-ASP.Net core/terraform-manifests'
+              Contents: '**'
+              TargetFolder: '$(build.artifactstagingdirectory)'
+  - stage: Publish_Artifacts
+    displayName: "Publish_Artifacts"
+    jobs:
+      - job: Publish_Artifacts
+        steps:
+          - task: PublishBuildArtifacts@1
+            inputs:
+              PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+              ArtifactName: 'Terraform-artifacts'
+              publishLocation: 'Container'
+          
