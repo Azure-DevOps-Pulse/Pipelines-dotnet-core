@@ -24,6 +24,7 @@ stages:
               provider: 'azurerm'
               command: 'init'
               workingDirectory: '$(System.DefaultWorkingDirectory)/WebApp-ASP.Net core/terraform-manifests'
+              commandOptions: '-reconfigure'
               backendServiceArm: 'Azure DevOps Pulse (18a0e420-4ca6-47f3-ba52-2534b3c7d2c1)'
               backendAzureRmResourceGroupName: 'terraform-rg10'
               backendAzureRmStorageAccountName: 'terraformbackend0001'
