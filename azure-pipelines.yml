@@ -4,93 +4,67 @@
 # https://aka.ms/yaml
 
 trigger:
-- master
+- main
 
 pool:
-  vmImage: Windows-latest
+  vmImage: ubuntu-latest
 
 stages:
-  - stage: Terraform_Init
-    displayName: "Terraform Init"
-    jobs:
-      - job: Terraform_Init
-        displayName: "Initialize Terraform"
-        steps:
-          - task: TerraformInstaller@1
-            inputs:
-              terraformVersion: 'latest'
-          - task: TerraformTaskV4@4
-            inputs:
-              provider: 'azurerm'
-              command: 'init'
-              workingDirectory: '$(System.DefaultWorkingDirectory)/WebApp-ASP.Net core/terraform-manifests'
-              commandOptions: '-reconfigure'
-              backendServiceArm: 'Azure DevOps Pulse (18a0e420-4ca6-47f3-ba52-2534b3c7d2c1)'
-              backendAzureRmResourceGroupName: 'terraform-rg10'
-              backendAzureRmStorageAccountName: 'terraformbackend0001'
-              backendAzureRmContainerName: 'tfcontainer01'
-              backendAzureRmKey: 'terraform.tfstate'
+- stage: Build
+  displayName: 'Build'
+  jobs:
+  - job: Build
+    displayName: 'Build'
+    steps:
+    - task: TerraformInstaller@1
+      displayName: Terraform installer
+      inputs:
+        terraformVersion: 'latest'
+    - task: TerraformTaskV4@4
+      displayName: Terraform Init
+      inputs:
+        provider: 'azurerm'
+        command: 'init'
+        workingDirectory: '$(System.DefaultWorkingDirectory)/WebApp-ASP.Net core/terraform-manifests'
+        backendServiceArm: 'Azure DevOps Pulse (18a0e420-4ca6-47f3-ba52-2534b3c7d2c1)'
+        backendAzureRmResourceGroupName: 'terraform-rg10'
+        backendAzureRmStorageAccountName: 'terraformbackend0001'
+        backendAzureRmContainerName: 'tfcontainer01'
+        backendAzureRmKey: 'terraform.tfstate'
 
-  - stage: Validate
-    displayName: "Terraform Validate"
-    jobs:
-      - job: Terraform_Validate
-        displayName: "Validate Terraform Configuration"
-        steps:
-          - task: TerraformTaskV4@4
-            inputs:
-              provider: 'azurerm'
-              command: 'validate'
-              workingDirectory: '$(System.DefaultWorkingDirectory)/WebApp-ASP.Net core/terraform-manifests'
-  
-  - stage: Format
-    displayName: "Terraform Format"
-    jobs:
-      - job: Terraform_Format
-        displayName: "Format Terraform Files"
-        steps:
-          - task: TerraformTaskV4@4
-            inputs:
-              provider: 'azurerm'
-              command: 'custom'
-              workingDirectory: '$(System.DefaultWorkingDirectory)/WebApp-ASP.Net core/terraform-manifests'
-              outputTo: 'console'
-              customCommand: 'fmt'
-              environmentServiceNameAzureRM: 'Azure DevOps Pulse (18a0e420-4ca6-47f3-ba52-2534b3c7d2c1)'
-
-  - stage: Plan
-    displayName: "Terraform Plan"
-    jobs:
-      - job: Terraform_Plan
-        displayName: "Generate Terraform Plan"
-        steps:
-          - task: TerraformTaskV4@4
-            inputs:
-              provider: 'azurerm'
-              command: 'plan'
-              workingDirectory: '$(System.DefaultWorkingDirectory)/WebApp-ASP.Net core/terraform-manifests'
-              environmentServiceNameAzureRM: 'Azure DevOps Pulse (18a0e420-4ca6-47f3-ba52-2534b3c7d2c1)'
-
-  - stage: Copy_File
-    displayName: "Copy Files"
-    jobs:
-      - job: Copy_Files
-        displayName: "Copy Terraform Files"
-        steps:
-          - task: CopyFiles@2
-            inputs:
-              SourceFolder: '$(System.DefaultWorkingDirectory)/WebApp-ASP.Net core/terraform-manifests'
-              Contents: '**'
-              TargetFolder: '$(Build.ArtifactStagingDirectory)'
-
-  - stage: Publish_Artifacts
-    displayName: "Publish Artifacts"
-    jobs:
-      - job: Publish_Artifacts
-        displayName: "Publish Terraform Artifacts"
-        steps:
-          - task: PublishBuildArtifacts@1
-            inputs:
-              PathtoPublish: '$(Build.ArtifactStagingDirectory)'
-              ArtifactName: 'Terraform-artifacts'
-              publishLocation: 'Container'
+    - task: TerraformTaskV4@4
+      displayName: Terraform Validate
+      inputs:
+        provider: 'azurerm'
+        command: 'validate'
+        workingDirectory: '$(System.DefaultWorkingDirectory)/WebApp-ASP.Net core/terraform-manifests'
+    
+    - task: TerraformTaskV4@4
+      displayName: Terraform format
+      inputs:
+        provider: 'azurerm'
+        command: 'custom'
+        workingDirectory: '$(System.DefaultWorkingDirectory)/WebApp-ASP.Net core/terraform-manifests'
+        outputTo: 'console'
+        customCommand: 'fmt'
+        environmentServiceNameAzureRM: 'Azure DevOps Pulse (18a0e420-4ca6-47f3-ba52-2534b3c7d2c1)'
+    
+    - task: TerraformTaskV4@4
+      inputs:
+        provider: 'azurerm'
+        command: 'plan'
+        workingDirectory: '$(System.DefaultWorkingDirectory)/WebApp-ASP.Net core/terraform-manifests'
+        environmentServiceNameAzureRM: 'Azure DevOps Pulse (18a0e420-4ca6-47f3-ba52-2534b3c7d2c1)'
+    - task: CopyFiles@2
+      displayName: Copy files
+      inputs:
+        SourceFolder: '$(Build.SourcesDirectory)'
+        Contents: '**'
+        TargetFolder: '$(build.artifactstagingdirectory)'
+        OverWrite: true
+    - task: PublishBuildArtifacts@1
+      displayName: Publish Artifacts
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+        ArtifactName: 'Artifacts-terraform'
+        publishLocation: 'Container'
