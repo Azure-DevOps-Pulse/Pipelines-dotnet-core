@@ -7,7 +7,7 @@ trigger:
 - master
 
 pool:
-  vmImage: ubuntu-latest
+  vmImage: Windows-latest
 
 stages:
   - stage: Terraform_Init
